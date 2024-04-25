@@ -1,0 +1,12 @@
+
+# data files
+checkPoints/
+results/
+*.pptx
+*.ppt
+pretrained/
+debug_log/
+gate_model_checkpoints/
+data/
+# Byte-compiled / optimized / DLL files
+__pycache__/
