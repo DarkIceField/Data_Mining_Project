@@ -9,7 +9,6 @@ from utils.loss import RSquare
 from utils.my_dataset import MyDataSet
 from model import swin_tiny_patch4_window7_224 as swin_transformer
 from model import linear_encoder
-from utils.utils import read_split_data, train_one_epoch, evaluate
 from tqdm import tqdm
 from typing import List
 from torch import nn
@@ -212,7 +211,7 @@ def train():
                 )
             else:
                 image_encoder.load_state_dict(chkPoint["image_encoder_state_dict"])
-            number_encoder.load_state_dict(chkPoint["number_encoder_state_dict"])
+            number_encoder.load_state_dict(chkPoint["num_encoder_state_dict"])
             decoder.load_state_dict(chkPoint["decoder_state_dict"])
             image_optimizer.load_state_dict(chkPoint["image_optimizer_state_dict"])
             other_optimizer.load_state_dict(chkPoint["other_optimizer_state_dict"])
