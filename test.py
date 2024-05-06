@@ -22,14 +22,17 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from utils.loss import RSquare
 from utils.my_dataset import MyEvalDataSet
-from model import swin_tiny_patch4_window7_224 as swin_transformer
-from model import linear_encoder
+from model import swin_base_patch4_window12_384_in22k as swin_transformer
+from model import linear_encoder, linear_decoder
 from tqdm import tqdm
 from typing import List
 from torch import nn
 import logging
 import numpy as np
 from torch.cuda.amp import autocast, GradScaler
+from sklearn.preprocessing import StandardScaler
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 
 def tensorToNdImg(tensor):
@@ -39,6 +42,12 @@ def tensorToNdImg(tensor):
     )
     ndRes = ndRes.detach().cpu().numpy()
     return ndRes
+
+
+def denormalize(tensor, mean, std):
+    mean = torch.tensor(mean)
+    std = torch.tensor(std)
+    return tensor * std + mean
 
 
 def test():
@@ -51,10 +60,12 @@ def test():
     # weightFile = os.path.join('checkPoints'+'IFCNN','IFCNN-MAX.pth')
     # IFCNNmodel.load_state_dict(torch.load(weightFile))
     # IFCNNmodel.eval()
-    savemodelName = "model_epoch15"
+    savemodelName = "model_epoch54"
     image_encoder = swin_transformer().to(device)
     number_encoder = linear_encoder().to(device)
-    decoder = nn.Linear(1094, 6).to(device)
+    decoder = linear_decoder(in_channel=1350, out_channel=6, hidden_channel=256).to(
+        device
+    )
 
     weightFile = os.path.join("pretrained", savemodelName + ".tar")
     chkPoint = torch.load(weightFile)
@@ -70,9 +81,19 @@ def test():
     decoder.eval()
 
     data_root = os.path.abspath(os.path.join(os.getcwd(), "data"))
+    train_root = os.path.join(data_root, "train")
     testRoot = os.path.join(data_root, "test")
-
-    test_dataset = MyEvalDataSet(csv_path=os.path.join(testRoot, "test.csv"))
+    test_trans =A.Compose(
+        [
+            A.Resize(224, 224),
+            A.ToFloat(),
+            A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225],max_pixel_value=1.0),
+            ToTensorV2(),
+        ]
+    )
+    test_dataset = MyEvalDataSet(
+        csv_path=os.path.join(testRoot, "test.csv"), img_transform=test_trans
+    )
     predict_df = pd.DataFrame(columns=["id", "X4", "X11", "X18", "X50", "X26", "X3112"])
 
     for index, (
@@ -88,7 +109,9 @@ def test():
             num_feature = number_encoder(aux)
             out = decoder(torch.cat((img_feature, num_feature), dim=1))
         out = out.squeeze().cpu().detach().numpy()
-        predict_df.loc[len(predict_df)] = [id] + list(out)
+        out[3], out[4] = out[4], out[3]
+        delog_out = np.exp(out)
+        predict_df.loc[len(predict_df)] = [id] + list(delog_out)
 
     predict_df.to_csv(os.path.join(data_root, "predict.csv"), index=False)
 

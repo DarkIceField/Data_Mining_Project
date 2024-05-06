@@ -716,6 +716,21 @@ class SwinTransformer(nn.Module):
         return x
 
 
+def swin_base_patch4_window7_224_in22k(**kwargs):
+    # trained ImageNet-22K
+    # https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_base_patch4_window7_224_22k.pth
+    model = SwinTransformer(
+        in_chans=3,
+        patch_size=4,
+        window_size=7,
+        embed_dim=128,
+        depths=(2, 2, 18, 2),
+        num_heads=(4, 8, 16, 32),
+        **kwargs
+    )
+    return model
+
+
 def swin_tiny_patch4_window7_224(dim: int = 96, **kwargs):
     # trained ImageNet-1K
     # https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth
@@ -731,6 +746,21 @@ def swin_tiny_patch4_window7_224(dim: int = 96, **kwargs):
     return model
 
 
+def swin_base_patch4_window12_384_in22k(num_classes: int = 21841, **kwargs):
+    # trained ImageNet-22K
+    # https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_base_patch4_window12_384_22k.pth
+    model = SwinTransformer(
+        in_chans=3,
+        patch_size=4,
+        window_size=12,
+        embed_dim=128,
+        depths=(2, 2, 18, 2),
+        num_heads=(4, 8, 16, 32),
+        **kwargs
+    )
+    return model
+
+
 def linear_encoder(in_channel: int = 163, scale: int = 2):
     model = LinearEncoder(
         in_features=in_channel,
@@ -738,5 +768,16 @@ def linear_encoder(in_channel: int = 163, scale: int = 2):
         out_features=in_channel * scale,
         act_layer=nn.GELU,
         drop=0.1,
+    )
+    return model
+
+
+def linear_decoder(
+    in_channel: int = 1094, out_channel: int = 6, hidden_channel: int = 256
+):
+    model = nn.Sequential(
+        nn.Linear(in_channel, hidden_channel),
+        nn.GELU(),
+        nn.Linear(hidden_channel, out_channel),
     )
     return model

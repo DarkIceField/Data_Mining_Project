@@ -7,14 +7,18 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from utils.loss import RSquare
 from utils.my_dataset import MyDataSet
-from model import swin_tiny_patch4_window7_224 as swin_transformer
+from model import swin_base_patch4_window7_224_in22k as swin_transformer
 from model import linear_encoder
+from model import linear_decoder
 from tqdm import tqdm
 from typing import List
 from torch import nn
 import logging
 import numpy as np
-from torch.cuda.amp import autocast, GradScaler
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 
 def saveCheckPoint(
@@ -24,7 +28,8 @@ def saveCheckPoint(
     decoder: nn.Module,
     image_optimizer: optim.Optimizer,
     other_optimizer: optim.Optimizer,
-    scaler: GradScaler,
+    image_scheduler: optim.lr_scheduler.LRScheduler,
+    other_scheduler: optim.lr_scheduler.LRScheduler,
     loss: torch.Tensor,
     weightDir: str,
 ):
@@ -41,7 +46,8 @@ def saveCheckPoint(
             "loss": loss,
             "image_optimizer_state_dict": image_optimizer.state_dict(),
             "other_optimizer_state_dict": other_optimizer.state_dict(),
-            "scaler_state_dict": scaler.state_dict(),
+            "scheduler1_state_dict": image_scheduler.state_dict(),
+            "scheduler2_state_dict": other_scheduler.state_dict(),
         },
         os.path.join(weightDir, "model_epoch{}.tar".format(epoch)),
     )
@@ -105,49 +111,66 @@ def train():
 
     # set parameters
     data_root = os.path.abspath(os.path.join(os.getcwd(), "data"))
-    modelName = "plant_regression_v0.1"
+    modelName = "plant_regression_v0.4"
     batchSize = 32
-    epochs = 300
-    swin_lr = 1e-5
-    mlp_lr = 1e-2
+    swin_lr = 1e-4
+    mlp_max_lr = 1e-3
+    mlp_min_lr = 1e-6
+    warm_up_epoch = 5
+    restart = 100
+    train_epoch = 100
+    total_epoch = train_epoch + warm_up_epoch
+    weight_decay = 1e-2
     img_size = 224
-    pretrained_model = "swin_tiny_patch4_window7_224.pth"
+    pretrained_model = "swin_base_patch4_window7_224_22k.pth"
     img_transform = {
-        "train": transforms.Compose(
+        "train": A.Compose(
             [
-                transforms.ToTensor(),
-                transforms.RandomResizedCrop((img_size, img_size),scale=(0.6,1),antialias=True),
-                transforms.RandomApply(
-                    [
-                        transforms.ColorJitter(0.1, 0.1, (0.45, 0.55), 0.1),
-                        transforms.RandomErasing(p=1, scale=(0.06, 0.15)),
-                        transforms.RandomHorizontalFlip(p=1),
-                        transforms.RandomVerticalFlip(p=1),
-                        transforms.RandomRotation((3.6, 18)),
-                    ],
-                    p=0.5,
+                A.HorizontalFlip(p=0.5),
+                A.RandomSizedCrop(
+                    (448, 512),
+                    (img_size, img_size),
+                    w2h_ratio=1.0,
+                    p=0.75,
                 ),
-                # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                A.Resize(img_size, img_size),
+                A.RandomBrightnessContrast(
+                    brightness_limit=0.1, contrast_limit=0.1, p=0.25
+                ),
+                A.ImageCompression(quality_lower=85, quality_upper=100, p=0.25),
+                A.ToFloat(),
+                A.Normalize(
+                    [0.485, 0.456, 0.406], [0.229, 0.224, 0.225], max_pixel_value=1
+                ),
+                ToTensorV2(),
             ]
         ),
-        "val": transforms.Compose(
+        "val": A.Compose(
             [
-                transforms.ToTensor(),
-                # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                A.Resize(img_size, img_size),
+                A.ToFloat(),
+                A.Normalize(
+                    [0.485, 0.456, 0.406], [0.229, 0.224, 0.225], max_pixel_value=1
+                ),
+                ToTensorV2(),
             ]
         ),
     }
-
+    feature_scaler = StandardScaler()
     # 实例化训练数据集
     train_dataset = MyDataSet(
-        csv_path=os.path.join(data_root, "train", "train.csv"),
+        root_dir=data_root,
         img_transform=img_transform["train"],
+        feature_scaler=feature_scaler,
+        is_train=True,
     )
 
     # 实例化验证数据集
     val_dataset = MyDataSet(
-        csv_path=os.path.join(data_root, "validate", "val.csv"),
+        root_dir=data_root,
         img_transform=img_transform["val"],
+        feature_scaler=feature_scaler,
+        is_train=False,
     )
 
     train_loader = torch.utils.data.DataLoader(
@@ -165,13 +188,16 @@ def train():
         pin_memory=True,
     )
 
-    iterations = epochs * len(train_loader)
+    iterations = total_epoch * len(train_loader)
     print("iterarions:{}".format(iterations))
     image_encoder = swin_transformer().to(device)
     number_encoder = linear_encoder().to(device)
-    decoder = nn.Linear(1094, 6).to(device)
+    decoder = linear_decoder(in_channel=1350, out_channel=6, hidden_channel=256).to(
+        device
+    )
     # define R-Square loss function
-    r2loss = RSquare(is_loss=True).to(device)
+    r2metric = RSquare(is_loss=False).to(device)
+    loss_func = RSquare(is_loss=True).to(device)
     lastEpoch = 0
     lossArray = []
     image_optimizer = optim.AdamW(
@@ -179,17 +205,28 @@ def train():
         lr=swin_lr,
         betas=(0.9, 0.999),
         eps=1e-8,
-        weight_decay=1e-4,
+        weight_decay=weight_decay,
     )
     other_optimizer = optim.AdamW(
         [{"params": number_encoder.parameters()}, {"params": decoder.parameters()}],
-        lr=mlp_lr,
+        lr=mlp_max_lr,
         betas=(0.9, 0.999),
         eps=1e-8,
-        weight_decay=1e-2,
+        weight_decay=weight_decay,
     )
-    #define scaler
-    scaler = GradScaler()
+    # warm up lr
+    alpha = mlp_min_lr / mlp_max_lr
+
+    def lr_func(epoch):
+        if epoch < warm_up_epoch:
+            return (epoch + 1) / warm_up_epoch
+        else:
+            return alpha + 0.5 * (1 - alpha) * (
+                1 + np.cos((epoch + 1 - warm_up_epoch) / restart * np.pi)
+            )
+
+    scheduler1 = optim.lr_scheduler.LambdaLR(image_optimizer, lr_lambda=lr_func)
+    scheduler2 = optim.lr_scheduler.LambdaLR(other_optimizer, lr_lambda=lr_func)
 
     weightDir = os.path.join("checkPoints", modelName)
     logDir = os.path.join(weightDir, "logs")
@@ -215,6 +252,8 @@ def train():
             decoder.load_state_dict(chkPoint["decoder_state_dict"])
             image_optimizer.load_state_dict(chkPoint["image_optimizer_state_dict"])
             other_optimizer.load_state_dict(chkPoint["other_optimizer_state_dict"])
+            scheduler1.load_state_dict(chkPoint["scheduler1_state_dict"])
+            scheduler2.load_state_dict(chkPoint["scheduler2_state_dict"])
             loss = chkPoint["loss"]
             lastEpoch = chkPoint["epoch"]
     else:
@@ -239,7 +278,7 @@ def train():
     image_encoder.train()
     number_encoder.train()
     decoder.train()
-    for epoch in range(lastEpoch + 1, lastEpoch + epochs + 1):
+    for epoch in range(lastEpoch + 1, lastEpoch + total_epoch + 1):
         print(
             "start epoch {}: ,lr:{}".format(
                 epoch, other_optimizer.state_dict()["param_groups"][0]["lr"]
@@ -252,18 +291,16 @@ def train():
             img = img.to(device, non_blocking=True)
             aux = aux.to(device, non_blocking=True)
             label = label.to(device, non_blocking=True)
-            with autocast():
-                img_feature = image_encoder(img)
-                num_feature = number_encoder(aux)
-                out = decoder(torch.cat((img_feature, num_feature), dim=1))
-                loss = r2loss(out, label)
+            img_feature = image_encoder(img)
+            num_feature = number_encoder(aux)
+            out = decoder(torch.cat((img_feature, num_feature), dim=1))
+            loss = loss_func(out, label)
             lossSum += loss.item()
             image_optimizer.zero_grad()
             other_optimizer.zero_grad()
-            scaler.scale(loss).backward()
-            scaler.step(image_optimizer)
-            scaler.step(other_optimizer)
-            scaler.update()
+            loss.backward()
+            image_optimizer.step()
+            other_optimizer.step()
 
         loss_mean = lossSum / len(train_loader)
         lossArray.append(loss_mean)
@@ -283,7 +320,9 @@ def train():
         for i in lossArray:
             print(" {:.4f}".format(i), end="")
         print("")
-        if not epoch % 5:
+        scheduler1.step()
+        scheduler2.step()
+        if not epoch % 2:
             image_encoder.eval()
             number_encoder.eval()
             decoder.eval()
@@ -316,7 +355,8 @@ def train():
                 decoder,
                 image_optimizer,
                 other_optimizer,
-                scaler,
+                scheduler1,
+                scheduler2,
                 loss,
                 weightDir,
             )
