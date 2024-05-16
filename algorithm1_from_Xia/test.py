@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from utils.loss import RSquare
 from utils.my_dataset import MyEvalDataSet
-from model import swin_base_patch4_window12_384_in22k as swin_transformer
+from model import swin_base_patch4_window7_224_in22k as swin_transformer
 from model import linear_encoder, linear_decoder
 from tqdm import tqdm
 from typing import List
@@ -60,7 +60,7 @@ def test():
     # weightFile = os.path.join('checkPoints'+'IFCNN','IFCNN-MAX.pth')
     # IFCNNmodel.load_state_dict(torch.load(weightFile))
     # IFCNNmodel.eval()
-    savemodelName = "model_epoch54"
+    savemodelName = "model_epoch100"
     image_encoder = swin_transformer().to(device)
     number_encoder = linear_encoder().to(device)
     decoder = linear_decoder(in_channel=1350, out_channel=6, hidden_channel=256).to(

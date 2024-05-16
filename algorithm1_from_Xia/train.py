@@ -5,7 +5,7 @@ import torch
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
-from utils.loss import RSquare
+from utils.loss import RSquare, STDLoss
 from utils.my_dataset import MyDataSet
 from model import swin_base_patch4_window7_224_in22k as swin_transformer
 from model import linear_encoder
@@ -79,8 +79,8 @@ def validate(
     epoch: int,
     logger: logging.Logger,
 ):
-    r2loss = RSquare(is_loss=True).to(device)
-    lossSum = 0.0
+    getr2 = RSquare().to(device)
+    r2Sum = 0.0
     print("start test epoch {}:".format(epoch))
 
     with torch.no_grad():
@@ -93,13 +93,13 @@ def validate(
             img_feature = image_encoder(img)
             num_feature = number_encoder(aux)
             out = decoder(torch.cat((img_feature, num_feature), dim=1))
-            loss = r2loss(out, label)
-            lossSum += loss.item()
+            r2 = getr2(out, label)
+            r2Sum += r2.item()
 
-    loss_mean = lossSum / len(dataloader)
-    logger.info("end epoch{} test,vali_loss:{:.4f},\n".format(epoch, loss_mean))
+    r2_mean = r2Sum / len(dataloader)
+    logger.info("end epoch{} test,vali_RSquare:{:.4f}".format(epoch, r2_mean))
 
-    return loss_mean
+    return r2_mean
 
 
 def train():
@@ -111,16 +111,16 @@ def train():
 
     # set parameters
     data_root = os.path.abspath(os.path.join(os.getcwd(), "data"))
-    modelName = "plant_regression_v0.4"
+    modelName = "plant_regression_v0.5"
     batchSize = 32
     swin_lr = 1e-4
     mlp_max_lr = 1e-3
     mlp_min_lr = 1e-6
     warm_up_epoch = 5
-    restart = 100
-    train_epoch = 100
+    restart = 300
+    train_epoch = 300
     total_epoch = train_epoch + warm_up_epoch
-    weight_decay = 1e-2
+    weight_decay = 1e-3
     img_size = 224
     pretrained_model = "swin_base_patch4_window7_224_22k.pth"
     img_transform = {
@@ -196,8 +196,10 @@ def train():
         device
     )
     # define R-Square loss function
-    r2metric = RSquare(is_loss=False).to(device)
-    loss_func = RSquare(is_loss=True).to(device)
+    r2metric = RSquare().to(device)
+    # loss_func = nn.SmoothL1Loss()
+    loss_func = STDLoss()
+    weights = [1, 0.2]
     lastEpoch = 0
     lossArray = []
     image_optimizer = optim.AdamW(
@@ -239,6 +241,7 @@ def train():
         if len(weightsList):
             weightsList.sort(key=lambda x: os.path.getctime(os.path.join(weightDir, x)))
             fileName = weightsList[-1]
+            print(fileName)
             filePath = os.path.join(weightDir, fileName)
             chkPoint = torch.load(filePath)
             print("load weightFile:{}".format(filePath))
@@ -284,7 +287,7 @@ def train():
                 epoch, other_optimizer.state_dict()["param_groups"][0]["lr"]
             )
         )
-        lossSum = 0.0
+        lossSum = np.zeros(3)
         for index, (img, aux, label) in tqdm(
             enumerate(train_loader), total=len(train_loader)
         ):
@@ -294,8 +297,9 @@ def train():
             img_feature = image_encoder(img)
             num_feature = number_encoder(aux)
             out = decoder(torch.cat((img_feature, num_feature), dim=1))
-            loss = loss_func(out, label)
-            lossSum += loss.item()
+            mloss, sloss = loss_func(out, label)
+            loss = weights[0] * mloss + weights[1] * sloss
+            lossSum += [loss.item(), mloss.item(), sloss.item()]
             image_optimizer.zero_grad()
             other_optimizer.zero_grad()
             loss.backward()
@@ -303,15 +307,17 @@ def train():
             other_optimizer.step()
 
         loss_mean = lossSum / len(train_loader)
-        lossArray.append(loss_mean)
+        lossArray.append(loss_mean[0])
         if len(lossArray) > 10:
             lossArray.pop(0)
 
         logger.info(
-            "end epoch{} train,lr:{},loss_total:{:.4f},mean:{:.4f},std:{:.4f}".format(
+            "end epoch{} train,lr:{},loss_mean:{:.4f},loss_std:{:.4f},loss_total:{:.4f},mean:{:.4f},std:{:.4f}".format(
                 epoch,
                 image_optimizer.state_dict()["param_groups"][0]["lr"],
-                loss_mean,
+                loss_mean[1],
+                loss_mean[2],
+                loss_mean[0],
                 np.mean(lossArray),
                 np.std(lossArray),
             )
@@ -326,7 +332,7 @@ def train():
             image_encoder.eval()
             number_encoder.eval()
             decoder.eval()
-            vali_loss = validate(
+            vali_r2 = validate(
                 image_encoder,
                 number_encoder,
                 decoder,
@@ -338,14 +344,9 @@ def train():
             image_encoder.train()
             number_encoder.train()
             decoder.train()
-            writer.add_scalars(
-                "Loss",
-                (
-                    {
-                        "loss_total": loss_mean,
-                        "vali_loss": vali_loss,
-                    }
-                ),
+            writer.add_scalar(
+                "Vali_r2",
+                vali_r2,
                 epoch,
             )
             saveCheckPoint(
@@ -360,16 +361,12 @@ def train():
                 loss,
                 weightDir,
             )
-        else:
-            writer.add_scalars(
-                "Loss",
-                (
-                    {
-                        "loss_total": loss_mean,
-                    }
-                ),
-                epoch,
-            )
+
+        writer.add_scalars(
+            "Loss",
+            ({"loss_mean": loss_mean[0], "loss_std": loss_mean[1]}),
+            epoch,
+        )
     writer.close()
 
 
