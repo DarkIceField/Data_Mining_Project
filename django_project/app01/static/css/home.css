@@ -1,0 +1,104 @@
+/* 基本样式 */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 800px; /* 可选，限制最大宽度 */
+  margin: 0 auto; /* 水平居中 */
+}
+
+.image-upload-container {
+  display: block;
+  position: relative;
+  width: 100px; /* 设置为你想要的宽度 */
+  height: 30px; /* 设置为你想要的高度 */
+  overflow: hidden;
+}
+.image-upload-container input[type="file"] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 100px; /* 增加字体大小以覆盖整个元素 */
+  text-align: right;
+  filter: alpha(opacity=0); /* IE 8 */
+  opacity: 0; /* 使其透明 */
+  outline: none; /* 移除轮廓 */
+  background: white; /* 使背景与按钮背景相同 */
+  cursor: pointer; /* 添加指针样式 */
+  display: block;
+}
+
+.image-upload-container button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none; /* 移除按钮边框 */
+  background-color: #4CAF50; /* 设置按钮背景色 */
+  color: white; /* 设置按钮文本颜色 */
+  padding: 0;
+  cursor: pointer;
+}
+.file-input {
+    position: absolute;
+    top: 0; /* 将输入框的顶部与容器的顶部对齐 */
+    left: 0; /* 将输入框的左侧与容器的左侧对齐 */
+    opacity: 0; /* 使输入框透明，以便用户只能看到按钮 */
+    width: 100%; /* 假设按钮是100%宽度，输入框也应该是 */
+    height: 100%; /* 假设按钮有固定高度，输入框也应该匹配这个高度 */
+    cursor: pointer; /* 添加指针样式，以表明这个区域是可点击的 */
+}
+
+.upload-button {
+    /* 你可以添加按钮的样式，如背景色、边框、字体等 */
+}
+
+.upload-btn {
+  padding: 10px 20px;
+  border: none;
+  background-color: #4CAF50; /* 绿色背景 */
+  color: white;
+  cursor: pointer;
+}
+
+.image-preview {
+  /* 设置图片预览区域的大小 */
+  width: 300px;
+  height: 200px;
+  /* 设置背景色为占位符 */
+  background-color: #f0f0f0; /* 浅灰色背景 */
+  position: relative; /* 如果需要定位其他元素（如加载指示器） */
+  border: 1px solid #ccc; /* 可选：添加边框使预览区域更突出 */
+  display: flex; /* 使用flex布局使内部元素居中（如果需要） */
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
+}
+
+.image-preview img {
+  max-width: 100%; /* 图片最大宽度不超过容器宽度 */
+  height: auto; /* 保持图片的比例 */
+  display: block; /* 消除图片下方的间隙（如果需要） */
+}
+
+/* 表格样式 */
+.data-table {
+  width: 100%;
+  border-collapse: collapse; /* 合并相邻边框 */
+}
+
+.data-table th, .data-table td {
+  padding: 10px;
+  border: 1px solid #ddd; /* 添加边框 */
+  text-align: left; /* 文本左对齐 */
+}
+
+.data-table th {
+  background-color: #f2f2f2; /* 表头背景色 */
+}

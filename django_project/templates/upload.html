@@ -1,0 +1,29 @@
+<!-- upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>上传文件</title>
+</head>
+<body>
+    <h2>上传文件</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">上传</button>
+    </form>
+</body>
+</html>
+
+<!-- success_upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>上传成功</title>
+</head>
+<body>
+    <h2>文件上传成功！</h2>
+    <!-- 这里可以添加额外的代码来显示上传的文件列表 -->
+</body>
+</html>

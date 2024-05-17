@@ -1,0 +1,36 @@
+<!-- upload_form.html -->
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Upload</button>
+</form>
+
+<!-- 显示图片的容器（如果你选择使用AJAX上传） -->
+<div id="image-preview"></div>
+
+<!-- 引入jQuery（或其他JavaScript库）来处理AJAX请求 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('form').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var formData = new FormData(form[0]);
+
+            $.ajax({
+                url: form.attr('action'),
+                type: form.attr('method'),
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    // 使用返回的图片URL来显示图片
+                    $('#image-preview').html('<img src="' + data.image_url + '" alt="Uploaded Image">');
+                },
+                error: function(error) {
+                    // 处理错误
+                }
+            });
+        });
+    });
+</script>

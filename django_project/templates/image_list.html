@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>图片列表</title>
+</head>
+<body>
+    <h2>上传的图片</h2>
+    <ul>
+        {% for image in images %}
+        <li>
+            <img src="{{ image.image.url }}" alt="{{ image.image.name }}" style="max-width: 300px;">
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

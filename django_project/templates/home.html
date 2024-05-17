@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文件上传与表格</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/home.css' %}">
+</head>
+<body>
+
+<div class="container">
+
+    <a href="{% url 'test' %}" class="btn btn-primary">测试</a>
+  <div class="image-preview">
+    <!-- 图片预览区域 -->
+    <img id="preview-image" src="" alt="预览图片">
+  </div>
+  <table class="data-table">
+    <!-- 表格内容 -->
+    <!-- 假设这里是两行七列的表格 -->
+    <tr>
+      <th>X4</th><th>X11</th><th>X18</th><th>X50</th><th>X26</th><th>X3112</th><th>类别</th><th>模型</th>
+    </tr>
+    <tr>
+      <td>{{ data1 }}</td><td>{{ data2 }}</td><td>{{ data3 }}</td><td>{{ data4 }}</td><td>{{ data5 }}</td><td>{{ data6 }}</td><td>{{ predicted_label }}</td><td>probs</td>
+    </tr>
+    <!-- 可以添加更多行 -->
+  </table>
+</div>
+<script>
+
+</script>
+</body>
+</html>

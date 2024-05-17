@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
+</head>
+<body>
+    <h1>植物形状预测系统</h1>
+    <div class="flex-container">
+        <div class="inputs">
+            <div class="choice">
+                <label>输入数据</label>
+                <div class="input_image">
+                    <label for="image_upload" style="margin-right: 10px;white-space: nowrap; ">选择图片：</label>
+                    <input type="file" name="image_upload" id="image_upload" class="input">
+                </div>
+                <div class="input_file">
+                    <label for="file_upload" style="margin-right: 10px;white-space: nowrap; ">选择辅助文件：</label>
+                    <input type="file" name="file_upload" id="file_upload" class="input">
+                </div>
+
+                <div class="select">
+                     <label for="choice_model" style="margin-right: 10px;white-space: nowrap; ">选择模型：</label>
+                    <select name="choice_model" id="choice_model">
+                        <option value="Swin Transformer" {% if form.choice_model.value == 'Swin Transformer' %}selected{% endif %}>Swin Transformer</option>
+                        <option value="ConvNeXt" {% if form.choice_model.value == 'ConvNeXt' %}selected{% endif %}>ConvNeXt</option>
+                        <option value="XGBoost" {% if form.choice_model.value == 'XGBoost' %}selected{% endif %}>XGBoost</option>
+                    </select>
+                </div>
+                <button type="submit" id="upload" class="submit">开始预测</button>
+            </div>
+            <div class="show">
+                <img id="preview-image" src="/media/plant1.jpeg" alt="">
+            </div>
+        </div>
+        <div class="output">
+            <table id="output-table">
+                <thead>
+                    <tr>
+                        <th>X4</th>
+                        <th>X11</th>
+                        <th>X18</th>
+                        <th>X50</th>
+                        <th>X26</th>
+                        <th>X3112</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+<script>
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // 查找以name开头并跟随=的cookie
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // 使用jQuery的ajaxSetup来全局设置headers
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+            }
+        }
+    });
+    $(document).ready(function () {
+        $('#upload').on('click', function (e) {
+            e.preventDefault();
+            var formData = new FormData();
+            formData.append('image_upload', $('#image_upload')[0].files[0]);
+            formData.append('file_upload', $('#file_upload')[0].files[0]);
+            formData.append('choice_model', $('#choice_model').val());
+            $.ajax({
+                url: '/test/',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.success) {
+                        alert('预测成功')
+                        image_url = response.image_url
+                        $('#preview-image').attr('src', image_url)
+                        $tbody = $('#dataTable tbody');
+                        var tableData = response.table;
+                        $tbody.empty();
+                        var $row = $('<tr></tr>');
+                        $.each(tableData, function (key, value) {
+                            $row.append($('<td></td>').text(value));
+
+                        })
+                        $tbody.append($row);
+                    }
+
+                }
+            })
+        });
+    });
+    $(document).ready(function () {
+        $('#imageInput').on('change', function (e) {
+            var file = e.target.files[0];
+            if (file) {
+                // 调用文件上传函数
+                uploadFile(file);
+            } else {
+                // 如果没有选择文件，可以给出提示
+                alert('请选择一个文件');
+            }
+        })
+
+        function uploadFile(file) {
+            var formData = new FormData(); // 创建FormData对象
+            formData.append('image', file);
+
+            $.ajax({
+                url: '/test/', // 替换为你的上传URL
+                type: 'POST',
+                data: formData,
+                processData: false, // 告诉jQuery不要去处理发送的数据
+                contentType: false, // 告诉jQuery不要去设置Content-Type请求头
+                success: function(response) {
+                    alert('文件上传成功');
+                    image_url = response.image_url;
+                    model = response.model
+                    $('#preview-image').attr('src', image_url);
+
+                },
+                error: function(xhr, status, error) {
+                    alert('文件上传失败');
+                    console.error(error);
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

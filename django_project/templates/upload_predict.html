@@ -1,0 +1,66 @@
+<!-- upload_predict.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>预测结果</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <form id="image-upload-form" enctype="multipart/form-data" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" id="image-upload-button">上传图片</button>
+    </form>
+
+    <!-- 用于显示上传的图片的容器 -->
+    <div id="image-container">
+        <!-- 图片将会在这里显示 -->
+    </div>
+
+    <!-- 用于显示预测结果的容器 -->
+    <div id="prediction-result"></div>
+
+    <script>
+    $(document).ready(function() {
+        // 假设你有一个提交表单的按钮，并为其绑定了点击事件
+        $('#image-upload-button').click(function(e) {
+            e.preventDefault(); // 阻止表单的默认提交行为
+
+            // 序列化表单数据并使用AJAX发送POST请求
+            var formData = new FormData($('#image-upload-form')[0]);
+            $.ajax({
+                url: '/upload_predict/', // 替换为你的上传URL
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    // 假设response是服务器返回的JSON数据
+                    if (response.success) {
+                        // 显示预测结果
+                        var resultHtml = '<p>预测标签: ' + response.predicted_label + '</p>';
+                        resultHtml += '<p>概率:</p><ul>';
+                        for (var label in response.probabilities) {
+                            resultHtml += '<li>标签 ' + label + ': ' + response.probabilities[label] + '</li>';
+                        }
+                        resultHtml += '</ul>';
+                        $('#prediction-result').html(resultHtml); // 更新页面上的元素
+
+                        // 如果你还想显示图片，可以这样做（假设你已经有了图片的URL）
+                        $('#image-container').html('<img src="' + response.image_url + '" alt="Uploaded Image">');
+                    } else {
+                        // 处理错误情况
+                        console.error('预测失败:', response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // 处理AJAX请求错误
+                    console.error('AJAX请求失败:', status, error);
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>

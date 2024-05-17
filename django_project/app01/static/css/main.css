@@ -1,0 +1,235 @@
+/* 通用样式 */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%; /* 或者设置为具体的宽度，如300px */
+}
+.container {
+  display: flex;
+  justify-content: space-between; /* 水平和分布内容 */
+  align-items: flex-start; /* 垂直对齐到顶部 */
+}
+.inputs {
+    display: flex;
+    flex-direction: column; /* 垂直排列按钮 */
+    margin-right: 20px; /* 右边距，与图片分隔 */
+    justify-content: space-between
+}
+.image-container img {
+    display: flex;
+    width: 100%; /* 图片宽度占满容器 */
+    height: auto; /* 保持图片比例 */
+    justify-content: space-between;
+}
+/* input[type="file"]样式 */
+#image_upload {
+    display: block;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%; /* 或者设置为具体的宽度 */
+}
+
+#file_upload {
+    display: block;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%; /* 或者设置为具体的宽度 */
+}
+
+/* label样式 */
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+/* select样式 */
+#choice_model {
+    display: block;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%; /* 或者设置为具体的宽度 */
+}
+
+/* button样式 */
+#upload {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #4CAF50; /* 绿色 */
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s; /* 过渡效果 */
+}
+
+#upload:hover {
+    background-color: #45a049; /* 稍微深一点的绿色 */
+}
+
+.image-container {
+  position: relative; /* 使伪元素能够相对于容器定位 */
+  width: 300px; /* 设置图片容器的宽度 */
+  height: 300px; /* 设置图片容器的高度 */
+  background-color: #ccc; /* 设置背景颜色为灰色 */
+  display: flex; /* 使用Flexbox来居中显示图片（如果需要的话） */
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
+  border: 1px solid #ddd; /* 可选：添加边框 */
+  overflow: hidden; /* 确保图片不会超出容器 */
+}
+
+.image-container::before {
+  content: "No Image Available"; /* 占位符文本 */
+  color: #666; /* 文本颜色 */
+  font-size: 18px; /* 文本大小 */
+  position: absolute; /* 相对于容器定位 */
+  top: 50%; /* 垂直居中 */
+  left: 50%; /* 水平居中 */
+  transform: translate(-50%, -50%); /* 使用transform来精确居中 */
+  z-index: 1; /* 确保文本在图片之上（如果图片存在） */
+  pointer-events: none; /* 禁止点击事件穿透到容器上 */
+}
+
+.image-container img {
+  max-width: 100%; /* 图片最大宽度为容器宽度 */
+  height: auto; /* 图片高度自动以保持比例 */
+  position: relative; /* 使图片在伪元素之上 */
+  z-index: 2; /* 确保图片在文本之上 */
+    border: 3px solid black;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+table {
+  width: 100%; /* 表格宽度为100% */
+  border-collapse: collapse; /* 合并相邻的边框 */
+  margin-bottom: 20px; /* 表格底部外边距 */
+}
+/* 表格头部样式 */
+thead th {
+  background-color: #f2f2f2; /* 头部背景色 */
+  padding: 10px; /* 内边距 */
+  text-align: left; /* 文字左对齐 */
+  border-bottom: 1px solid #ddd; /* 底部边框 */
+  font-weight: bold; /* 字体加粗 */
+}
+/* 表格单元格样式 */
+tbody td {
+  padding: 10px; /* 内边距 */
+  border-bottom: 1px solid #ddd; /* 底部边框 */
+}
+
+
+/*分割线*/
+.flex-container {
+    display: flex;
+    flex-direction: column;
+    width: 97vw;
+    height: 90vh; /* 示例：使容器占据整个视口高度 */
+    margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: 0 5px 13px rgb(0 0 0 / 15%);
+}
+
+.inputs {
+    display: flex;
+    flex-direction: row; /* 水平排列子元素 */
+    justify-content: space-between;
+    align-items: center;
+}
+
+.choice {
+    display: flex;
+    flex-direction: column; /* 垂直排列子元素 */
+    flex: 1; /* 使flex-item占据可用空间 */
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #ccc; /* 边框宽度、样式和颜色 */
+    padding: 20px; /* 内边距，根据你的需要调整 */
+    margin: 20px; /* 外边距，根据你的需要调整 */
+    border-radius: 5px; /* 边框圆角，可选 */
+}
+.input_image {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.input_file {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.select {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.show {
+    position: relative; /* 使伪元素能够相对于容器定位 */
+    width: 400px; /* 设置图片容器的宽度 */
+    height: 500px; /* 设置图片容器的高度 */
+    background-color: #ffffff; /* 设置背景颜色为灰色 */
+    display: flex; /* 使用Flexbox来居中显示图片（如果需要的话） */
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直居中 */
+    border: 1px solid #ccc; /* 可选：添加边框 */
+    overflow: hidden; /* 确保图片不会超出容器 */
+    flex: 1;
+    padding: 20px; /* 内边距，根据你的需要调整 */
+    margin: 20px; /* 外边距，根据你的需要调整 */
+    border-radius: 5px; /* 边框圆角，可选 */
+}
+
+.show::before {
+  content: "No Image Available"; /* 占位符文本 */
+  color: #666; /* 文本颜色 */
+  font-size: 18px; /* 文本大小 */
+  position: absolute; /* 相对于容器定位 */
+  top: 50%; /* 垂直居中 */
+  left: 50%; /* 水平居中 */
+  transform: translate(-50%, -50%); /* 使用transform来精确居中 */
+  z-index: 1; /* 确保文本在图片之上（如果图片存在） */
+  pointer-events: none; /* 禁止点击事件穿透到容器上 */
+}
+
+.show img {
+    width: auto; /* 图片最大宽度为容器宽度 */
+    max-height: 100%; /* 图片高度自动以保持比例 */
+    position: relative; /* 使图片在伪元素之上 */
+    z-index: 2; /* 确保图片在文本之上 */
+    border: 3px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+.output::before{
+    content: "预测结果";
+    display: block;
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.11); /* 1px宽，实线，黑色 */
+    padding: 5px; /* 添加内边距以使边框与文字之间有一些空间 */
+    width: auto;
+    background-color: #f2f2f2; /* 头部背景色 */
+    font-weight: bold;
+    font-size: 24px;
+
+}
+.output-table{
+    width: auto; /* 表格宽度为100% */
+    border-collapse: collapse; /* 合并相邻的边框 */
+    margin-bottom: 20px; /* 表格底部外边距 */
+}
